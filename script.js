@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const isDebugMode = new URLSearchParams(window.location.search).get('debug') === '1';
+
     // --- DOM Elements ---
     const gameWorld = document.getElementById('game-world');
     const scoreDisplay = document.getElementById('score');
@@ -467,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key.toLowerCase() === 'm') {
+        if (isDebugMode && e.key.toLowerCase() === 'm') {
             maxOutEverythingForTest();
         }
     });
