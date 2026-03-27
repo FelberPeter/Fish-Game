@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Angelspiel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app-shell">
+        <main id="play-area">
+            <div id="game-shell">
+                <div id="game-world">
+                    <div id="score-container"><span id="score">0</span></div>
+                    <div id="player-fishing-line" class="fishing-line"></div>
+                    <div id="player-hook" class="hook"></div>
+                </div>
+                <aside id="legend">
+                    <div class="legend-gradient-bar">
+                        <span class="legend-value top">20</span>
+                        <span class="legend-value bottom">3</span>
+                    </div>
+                </aside>
+            </div>
+
+            <div id="view-controls">
+                <button id="zoom-out" class="view-btn" aria-label="Zoom verkleinern">−</button>
+                <button id="zoom-in" class="view-btn" aria-label="Zoom vergrößern">+</button>
+                <button id="fullscreen-toggle" class="view-btn" aria-label="Fullscreen umschalten">⛶</button>
+            </div>
+        </main>
+
+        <section id="upgrade-panel">
+            <div class="upgrade-controls">
+                <div class="upgrade-item">
+                    <div class="upgrade-title"><span>Player Reel Speed</span> <span id="player-reel-speed-level" class="level-pill inline">Lv. 1</span></div>
+                    <button id="buy-reel-speed" data-cost="50">Buy (Cost: 50)</button>
+                </div>
+                <div class="upgrade-item">
+                    <div class="upgrade-title"><span>Player Cast Speed</span> <span id="player-cast-speed-level" class="level-pill inline">Lv. 1</span></div>
+                    <button id="buy-cast-speed" data-cost="50">Buy (Cost: 50)</button>
+                </div>
+                <div class="upgrade-item">
+                    <div class="upgrade-title"><span>Place Auto-Fisher</span> <span id="auto-fisher-count" class="level-pill inline">0</span></div>
+                    <button id="buy-auto-fisher" data-cost="250">Buy (Cost: 250)</button>
+                </div>
+            </div>
+            <div id="auto-fisher-upgrades"></div>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
