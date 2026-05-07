@@ -11,9 +11,14 @@ A lightweight browser fishing game built with plain HTML, CSS, and JavaScript.
 ## Controls
 
 - Mouse move: aim player line
-- Left click in game area: cast
+- Left click / tap in game area: cast
+- `Space`: cast
+- `P`: pause/resume
 - `+` / `-` buttons: zoom in/out
 - Fullscreen button: toggle fullscreen
+- Reset button: clear saved progress
+
+Progress is saved automatically in the browser after catches and purchases.
 
 ## Debug Mode
 

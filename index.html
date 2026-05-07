@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="0; url=Fishing-Game.html">
     <title>Fish Game</title>
 </head>
 <body>
     <p>Redirecting to the game...</p>
     <p><a href="Fishing-Game.html">Open game manually</a></p>
     <script>
-        window.location.replace('Fishing-Game.html');
+        const target = new URL('Fishing-Game.html', window.location.href);
+        target.search = window.location.search;
+        target.hash = window.location.hash;
+        window.location.replace(target);
     </script>
 </body>
 </html>

@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullscreenToggle = document.getElementById('fullscreen-toggle');
     const zoomInBtn = document.getElementById('zoom-in');
     const zoomOutBtn = document.getElementById('zoom-out');
+    const pauseToggle = document.getElementById('pause-toggle');
+    const resetProgressBtn = document.getElementById('reset-progress');
+    const gameStatus = document.getElementById('game-status');
 
     const playerReelSpeedLevel = document.getElementById('player-reel-speed-level');
     const buyReelSpeedBtn = document.getElementById('buy-reel-speed');
@@ -23,10 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game State ---
     const MAX_AUTO_FISHERS = 10;
+    const MAX_FISH = 28;
+    const SAVE_KEY = 'fish-game-progress-v2';
 
     const gameState = {
         score: 0,
         tick: 0,
+        isPaused: false,
         player: {
             isCasting: false,
             isReeling: false,
@@ -45,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Upgrade Definitions ---
     const upgrades = {
         playerSpeed: {
-            costs: [50, 90, 140, 200, 270, 350, 440, 540, 650, 770],
+            costs: [50, 90, 140, 200, 270, 350, 440, 540, 650],
             castSpeeds: [5, 6, 7, 8, 9, 10, 12, 14, 17, 20],
             reelSpeeds: [4, 5, 6, 7, 8, 9, 10, 12, 13, 15],
         },
@@ -53,22 +59,50 @@ document.addEventListener('DOMContentLoaded', () => {
             cost: 250,
         },
         autoFisherSpeed: {
-            costs: [75, 110, 150, 200, 260, 330, 410, 500, 600, 720],
+            costs: [75, 110, 150, 200, 260, 330, 410, 500, 600],
             speeds: [2, 2.3, 2.6, 3, 3.3, 3.6, 4, 4.3, 4.6, 5],
         },
         autoFisherInterval: {
-            costs: [100, 150, 210, 280, 360, 450, 550, 660, 780, 910],
+            costs: [100, 150, 210, 280, 360, 450, 550, 660, 780],
             intervals: [10, 9.4, 8.8, 8.2, 7.6, 7, 6.4, 5.8, 5, 4], // seconds
         },
     };
 
     // --- Helpers ---
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const getFishCount = () => document.querySelectorAll('.fish').length;
     const isFullscreen = () => !!document.fullscreenElement;
     const updateFullscreenUI = () => {
         if (fullscreenToggle) {
-            fullscreenToggle.textContent = '⛶';
+            fullscreenToggle.textContent = isFullscreen() ? 'x' : '⛶';
             fullscreenToggle.title = isFullscreen() ? 'Fullscreen verlassen' : 'Fullscreen';
+        }
+    };
+
+    const saveProgress = () => {
+        const progress = {
+            score: gameState.score,
+            player: {
+                castSpeedLevel: gameState.player.castSpeedLevel,
+                reelSpeedLevel: gameState.player.reelSpeedLevel,
+            },
+            autoFishers: gameState.autoFishers.map(fisher => ({
+                speedLevel: fisher.speedLevel,
+                intervalLevel: fisher.intervalLevel,
+            })),
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(progress));
+    };
+
+    const setPaused = (isPaused) => {
+        gameState.isPaused = isPaused;
+        if (pauseToggle) {
+            pauseToggle.textContent = isPaused ? '▶' : 'II';
+            pauseToggle.title = isPaused ? 'Weiter' : 'Pause';
+        }
+        if (gameStatus) {
+            gameStatus.textContent = isPaused ? 'Paused' : '';
+            gameStatus.classList.toggle('visible', isPaused);
         }
     };
 
@@ -105,10 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function applyUpgradeUI(level, costs, levelElement, button) {
+    function applyUpgradeUI(level, maxLevel, costs, levelElement, button) {
         levelElement.textContent = `Lv. ${level}`;
-        // Allow purchases only while below the maximum level (costs length maps to max level)
-        if (level < costs.length) {
+        if (level < maxLevel) {
             const cost = costs[level - 1];
             button.textContent = `Buy (Cost: ${cost})`;
             button.disabled = gameState.score < cost;
@@ -147,8 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreDisplay.textContent = gameState.score;
         updateFullscreenUI();
 
-        applyUpgradeUI(gameState.player.reelSpeedLevel, upgrades.playerSpeed.costs, playerReelSpeedLevel, buyReelSpeedBtn);
-        applyUpgradeUI(gameState.player.castSpeedLevel, upgrades.playerSpeed.costs, playerCastSpeedLevel, buyCastSpeedBtn);
+        applyUpgradeUI(gameState.player.reelSpeedLevel, upgrades.playerSpeed.reelSpeeds.length, upgrades.playerSpeed.costs, playerReelSpeedLevel, buyReelSpeedBtn);
+        applyUpgradeUI(gameState.player.castSpeedLevel, upgrades.playerSpeed.castSpeeds.length, upgrades.playerSpeed.costs, playerCastSpeedLevel, buyCastSpeedBtn);
 
         if (autoFisherCount) {
             autoFisherCount.textContent = `${gameState.autoFishers.length}`;
@@ -167,13 +200,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const speedLevelDisplay = document.getElementById(`${fisher.id}-speed-level`);
             const buySpeedBtn = document.getElementById(`buy-${fisher.id}-speed`);
             if (speedLevelDisplay && buySpeedBtn) {
-                applyUpgradeUI(fisher.speedLevel, upgrades.autoFisherSpeed.costs, speedLevelDisplay, buySpeedBtn);
+                applyUpgradeUI(fisher.speedLevel, upgrades.autoFisherSpeed.speeds.length, upgrades.autoFisherSpeed.costs, speedLevelDisplay, buySpeedBtn);
             }
 
             const intervalLevelDisplay = document.getElementById(`${fisher.id}-interval-level`);
             const buyIntervalBtn = document.getElementById(`buy-${fisher.id}-interval`);
             if (intervalLevelDisplay && buyIntervalBtn) {
-                applyUpgradeUI(fisher.intervalLevel, upgrades.autoFisherInterval.costs, intervalLevelDisplay, buyIntervalBtn);
+                applyUpgradeUI(fisher.intervalLevel, upgrades.autoFisherInterval.intervals.length, upgrades.autoFisherInterval.costs, intervalLevelDisplay, buyIntervalBtn);
             }
             ensureFisherSummary(fisher);
         });
@@ -191,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Fish Logic ---
     function createFish() {
+        if (gameState.isPaused || getFishCount() >= MAX_FISH || gameWidth <= 0 || gameHeight <= 0) return;
         const fish = document.createElement('div');
         fish.classList.add('fish');
 
@@ -246,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!lineOwner.caughtFish) return;
         const points = parseInt(lineOwner.caughtFish.dataset.points, 10) || 0;
         gameState.score += points;
+        saveProgress();
         showPointPopup(points, lineOwner.linePos.x, lineOwner.linePos.y);
         lineOwner.caughtFish.remove();
         lineOwner.caughtFish = null;
@@ -408,6 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.score -= cost;
             newFisher.speedLevel++;
             newFisher.speed = upgrades.autoFisherSpeed.speeds[currentLevel];
+            saveProgress();
             updateUI();
         });
 
@@ -419,8 +455,41 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState.score -= cost;
             newFisher.intervalLevel++;
             newFisher.interval = upgrades.autoFisherInterval.intervals[currentLevel] * 1000;
+            saveProgress();
             updateUI();
         });
+    }
+
+    function loadProgress() {
+        const rawProgress = localStorage.getItem(SAVE_KEY);
+        if (!rawProgress) return;
+
+        try {
+            const progress = JSON.parse(rawProgress);
+            gameState.score = Math.max(0, Number(progress.score) || 0);
+
+            const reelLevel = clamp(Number(progress.player?.reelSpeedLevel) || 1, 1, upgrades.playerSpeed.reelSpeeds.length);
+            const castLevel = clamp(Number(progress.player?.castSpeedLevel) || 1, 1, upgrades.playerSpeed.castSpeeds.length);
+            gameState.player.reelSpeedLevel = reelLevel;
+            gameState.player.castSpeedLevel = castLevel;
+            gameState.player.reelSpeed = upgrades.playerSpeed.reelSpeeds[reelLevel - 1];
+            gameState.player.castSpeed = upgrades.playerSpeed.castSpeeds[castLevel - 1];
+
+            const savedFishers = Array.isArray(progress.autoFishers) ? progress.autoFishers.slice(0, MAX_AUTO_FISHERS) : [];
+            savedFishers.forEach(savedFisher => {
+                addAutoFisher();
+                const fisher = gameState.autoFishers[gameState.autoFishers.length - 1];
+                const speedLevel = clamp(Number(savedFisher.speedLevel) || 1, 1, upgrades.autoFisherSpeed.speeds.length);
+                const intervalLevel = clamp(Number(savedFisher.intervalLevel) || 1, 1, upgrades.autoFisherInterval.intervals.length);
+                fisher.speedLevel = speedLevel;
+                fisher.intervalLevel = intervalLevel;
+                fisher.speed = upgrades.autoFisherSpeed.speeds[speedLevel - 1];
+                fisher.interval = upgrades.autoFisherInterval.intervals[intervalLevel - 1] * 1000;
+            });
+        } catch (error) {
+            console.warn('Could not load saved progress.', error);
+            localStorage.removeItem(SAVE_KEY);
+        }
     }
 
     // --- Test Helper: Max Out Everything ---
@@ -455,20 +524,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Event Listeners ---
-    gameWorld.addEventListener('mousemove', (e) => {
+    function aimPlayer(clientX) {
         if (!gameState.player.isCasting && !gameState.player.isReeling) {
             const rect = gameWorld.getBoundingClientRect();
-            gameState.player.linePos.x = clamp(e.clientX - rect.left, 0, gameWidth);
+            gameState.player.linePos.x = clamp(clientX - rect.left, 0, gameWidth);
         }
-    });
+    }
 
-    gameWorld.addEventListener('click', () => {
-        if (!gameState.player.isCasting && !gameState.player.isReeling) {
+    function castPlayerLine() {
+        if (!gameState.isPaused && !gameState.player.isCasting && !gameState.player.isReeling) {
             gameState.player.isCasting = true;
         }
+    }
+
+    gameWorld.addEventListener('pointermove', (e) => {
+        aimPlayer(e.clientX);
+    });
+
+    gameWorld.addEventListener('pointerdown', (e) => {
+        aimPlayer(e.clientX);
+        castPlayerLine();
     });
 
     document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            castPlayerLine();
+        }
+        if (e.key.toLowerCase() === 'p') {
+            setPaused(!gameState.isPaused);
+        }
         if (isDebugMode && e.key.toLowerCase() === 'm') {
             maxOutEverythingForTest();
         }
@@ -500,6 +585,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (pauseToggle) {
+        pauseToggle.addEventListener('click', () => {
+            setPaused(!gameState.isPaused);
+        });
+    }
+
+    if (resetProgressBtn) {
+        resetProgressBtn.addEventListener('click', () => {
+            localStorage.removeItem(SAVE_KEY);
+            window.location.reload();
+        });
+    }
+
     buyReelSpeedBtn.addEventListener('click', () => {
         const maxLevel = upgrades.playerSpeed.reelSpeeds.length;
         const currentLevel = gameState.player.reelSpeedLevel;
@@ -509,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState.score -= cost;
         gameState.player.reelSpeedLevel++;
         gameState.player.reelSpeed = upgrades.playerSpeed.reelSpeeds[Math.min(currentLevel, maxLevel - 1)];
+        saveProgress();
         updateUI();
     });
 
@@ -521,6 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState.score -= cost;
         gameState.player.castSpeedLevel++;
         gameState.player.castSpeed = upgrades.playerSpeed.castSpeeds[Math.min(currentLevel, maxLevel - 1)];
+        saveProgress();
         updateUI();
     });
 
@@ -529,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameState.score < cost) return;
         gameState.score -= cost;
         addAutoFisher();
+        saveProgress();
         updateUI();
     });
 
@@ -538,10 +639,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game Loop ---
     function gameLoop() {
-        gameState.tick++;
-        moveFishSchool();
-        handlePlayer();
-        handleAutoFishers();
+        if (!gameState.isPaused) {
+            gameState.tick++;
+            moveFishSchool();
+            handlePlayer();
+            handleAutoFishers();
+        }
         updateLines();
         updateUI();
         requestAnimationFrame(gameLoop);
@@ -549,9 +652,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initialization ---
     measureGameWorld();
+    loadProgress();
     applyZoom();
+    setPaused(false);
     updateLines();
     updateUI();
-    setInterval(createFish, 1000);
+    setInterval(createFish, 900);
     requestAnimationFrame(gameLoop);
 });
